@@ -1,16 +1,21 @@
 import random
+from datetime import date
+import csv
 class BankAccount:
   def __init__(self, initial_balance=0, transactions = {}):
     self.balance = initial_balance
     self.transactions = transactions
 
-  #to get the transaction id and store it in a dictionary
+  #to get the transaction id and store it in a csv file
   def get_transaction_id(self,type,amount):
     while True:
       transaction_id =  random.randint(100000,999999)
       if transaction_id not in self.transactions:
-        self.transactions[transaction_id] = {"transaction": type, "amount" : amount}
+        self.transactions[transaction_id] = {"date": date.today().strftime("%d-%m-%Y"), "transaction": type, "amount" : amount}
         break
+    with open("myaccount.csv","a",newline="") as file:
+      writer = csv.writer(file)
+      writer.writerow([transaction_id,self.transactions[transaction_id]["date"],type,amount])
 
   #Return the transactions
   def get_transactions_statement(self):
