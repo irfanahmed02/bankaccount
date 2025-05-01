@@ -1,11 +1,16 @@
 import os
 from datetime import date
 import csv
+import hashlib
 
 class UsersManagement:
    
       def __init__(self,users = None):
           self.users = users if users else {}
+        
+      #Hashing password
+      def hash_password(self,password):
+         return hashlib.sha256(password.encode()).hexdigest()
 
       def load_users_from_csv(self):
           if not os.path.exists("users.csv"):
@@ -27,8 +32,8 @@ class UsersManagement:
             if new_username in self.users:
               print("username not available")
               continue
-            pw = input("Create new password \n")
-            pw2 = input("Reenter the password \n")
+            pw = self.hash_password(input("Create new password \n"))
+            pw2 = self.hash_password(input("Reenter the password \n"))
             if pw != pw2:
                 print("Password doesnt match \n")
                 continue
@@ -49,7 +54,7 @@ class UsersManagement:
             username = input("Please enter username: (or press e to Exit) \n")
             if username == "e":
               break
-            password = input("please enter password \n")
+            password = self.hash_password(input("please enter password \n"))
             if username not in self.users or self.users[username] != password:
               print("username or password is incorrect")
               continue
