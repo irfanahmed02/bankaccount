@@ -1,105 +1,133 @@
-import random
 import os
 from datetime import date
 import csv
+
+class UsersManagement:
+   
+      def __init__(self,users = None):
+          self.users = users if users else {}
+
+      def load_users_from_csv(self):
+          if not os.path.exists("users.csv"):
+             return
+          with open("users.csv","r") as file:
+             reader = csv.reader(file)
+             next(reader)
+             for row in reader:
+                if len(row) == 2:
+                  user = row[0]
+                  password = row[1]
+                  self.users[user] = password                
+      
+      def create_account(self):
+          while True:
+            new_username = input("Please enter username: (or press e for exit) \n")
+            if new_username == "e":
+              return "Exit"
+            if new_username in self.users:
+              print("username not available")
+              continue
+            pw = input("Create new password \n")
+            pw2 = input("Reenter the password \n")
+            if pw != pw2:
+                print("Password doesnt match \n")
+                continue
+            self.users[new_username] = pw
+            write_header = not os.path.exists("users.csv") or os.path.getsize("users.csv") == 0
+            with open("users.csv","a",newline="") as file:
+               
+               writer = csv.writer(file)
+               if write_header:
+                  writer.writerow(["Username", "Password"])
+               writer.writerow([new_username, pw])
+                  
+               
+            return "Account has been created"
+          
+      def signin(self):
+          while True:
+            username = input("Please enter username: (or press e to Exit) \n")
+            if username == "e":
+              break
+            password = input("please enter password \n")
+            if username not in self.users or self.users[username] != password:
+              print("username or password is incorrect")
+              continue
+            else:
+              print("Access Granted")
+              return username
+          
+
 class BankAccount:
-  def __init__(self, initial_balance=0, transactions = {}):
-    self.balance = initial_balance
-    self.transactions = transactions
 
-  #to get the transaction id and store it in a csv file
-  def get_transaction_id(self,type,amount):
-    while True:
-      transaction_id =  random.randint(100000,999999)
-      if transaction_id not in self.transactions:
-        self.transactions[transaction_id] = {"date": date.today().strftime("%d-%m-%Y"), "transaction": type, "amount" : amount, "balance": self.balance}
-        break
-    self.update_csv(transaction_id,self.transactions[transaction_id]["date"], type, amount,self.balance)
+    def __init__(self,username, initial_balance=0, transactions = None):
+      self.username= username
+      self.balance = initial_balance
+      self.transactions = transactions if transactions else {}
+      self.last_transaction_id = max(self.transactions.keys(), default=100000)
+      
 
-  #Return the transactions
-  def get_transactions_statement(self):
-    return self.transactions
+    #to get the transaction id and store it in a csv file
+    def get_transaction_id(self,type,amount):
+      self.last_transaction_id += 1
+      self.transactions[self.last_transaction_id] = {"date": date.today().strftime("%d-%m-%Y"), "type": type, "amount" : amount, "balance": self.balance}
+      self.update_csv(self.last_transaction_id,self.transactions[self.last_transaction_id]["date"], type, amount,self.balance)
 
-  def deposit(self, amount):
-    if amount <= 0:
-      return 'Deposit amount must be positive'
-    self.balance += amount
-    self.get_transaction_id("deposit",amount)
-    return f"{amount} has been successfully  deposited into your account"
+    #Printing the statement
+    def get_statement(self):
+      return self.transactions
 
-  def withdraw(self, amount):
-    if amount <= 0:
-      return 'Withdrawal amount must be positive'
-    if amount > self.balance:
-      return 'Insufficient funds'
-    self.balance -= amount
-    self.get_transaction_id("withdraw",amount)
-    return f"{amount} has been successfully withdrawn from your account"
+    def deposit(self, amount):
+      if amount <= 0:
+        return 'Deposit amount must be positive'
+      self.balance += amount
+      self.get_transaction_id("deposit",amount)
+      return f"{amount} has been successfully  deposited into your account"
 
-  def check_balance(self):
-    return f"Current Balance: {self.balance}"
-  
-  def update_csv(self,id,date,type,amount,balance):
-    write_header = not os.path.exists("myaccount.csv") or os.path.getsize("myaccount.csv") == 0
-    with open("myaccount.csv","a",newline="") as file:
-        writer = csv.writer(file)
-        if write_header:
-          writer.writerow(["Id","Date","Type","Amount","Balance"])
-        writer.writerow([id,date,type,amount,balance])
+    def withdraw(self, amount):
+      if amount <= 0:
+        return 'Withdrawal amount must be positive'
+      if amount > self.balance:
+        return 'Insufficient funds'
+      self.balance -= amount
+      self.get_transaction_id("withdraw",amount)
+      return f"{amount} has been successfully withdrawn from your account"
 
-  def load_from_previous_statements(self):
-    write_header = not os.path.exists("myaccount.csv") or os.path.getsize("myaccount.csv") == 0
-    if write_header:
-          return "Previous transactions not available"
+    def check_balance(self):
+      return f"Current Balance: {self.balance}"
     
-    self.transactions = {}
-    self.balance = 0
-    with open("myaccount.csv","r") as file:
-      reader = csv.reader(file)
-      next(reader)
-      for row in reader:
-        if len(row) < 5:
-          continue
-        transaction_id = int(row[0])
-        tran_date = row[1]
-        tran_type = row[2]
-        tran_amount = int(row[3])
-        balance = int(row[4])
+    def update_csv(self,id,date,type,amount,balance):
+      write_header = not os.path.exists(f"{self.username}.csv") or os.path.getsize(f"{self.username}.csv") == 0
+      with open(f"{self.username}.csv","a",newline="") as file:
+          writer = csv.writer(file)
+          if write_header:
+            writer.writerow(["Id","Date","Type","Amount","Balance"])
+          writer.writerow([id,date,type,amount,balance])
 
-        self.transactions[transaction_id] = {"date" : tran_date,
-          "transaction" : tran_type,
-          "amount" : tran_amount,
-          "balance" : balance}
-        self.balance = balance
-        
+    def load_from_csv(self):
+      write_header = not os.path.exists(f"{self.username}.csv") or os.path.getsize(f"{self.username}.csv") == 0
+      if write_header:
+        return "Welcome, we are excited for your first transaction!"
+      
+      
+      self.transactions = {}
+      self.balance = 0
+      with open(f"{self.username}.csv","r") as file:
+        reader = csv.reader(file)
+        next(reader)
+        for row in reader:
+          if len(row) < 5:
+            continue
+          transaction_id = int(row[0])
+          tran_date = row[1]
+          tran_type = row[2]
+          tran_amount = float(row[3])
+          balance = float(row[4])
 
-
-my_account = BankAccount()
-while True:
-  operation = int(input("Please enter the transaction number \n 1. Deposit \n 2. Withdrawl \n 3. Statement \n 4. Check balance \n 5. Include previous transactions \n 6. Exit \n"))
-  
-  if operation == 1:
-    amount = int(input("Please enter the deposit amount \n"))
-    print(my_account.deposit(amount))
-
-  elif operation == 2:
-    amount = int(input("Please enter withdraw amount \n"))
-    print(my_account.withdraw(amount))
-
-  elif operation == 3:
-    transactions = my_account.get_transactions_statement()
-    print("Transaction ID, Date, Type, Amount, Balance")
-    for id, tran in transactions.items():
-      print(f'{id},{tran["date"]},{tran["transaction"]},{tran["amount"]},{tran["balance"]}')
-
-  elif operation == 4:
-    print(my_account.check_balance())
-
-  elif operation == 5:
-    my_account.load_from_previous_statements()
-
-  elif operation == 6:
-    break
-
-  else:
-    print("Please enter valid key: \n")
+          self.transactions[transaction_id] = {"date" : tran_date,
+            "type" : tran_type,
+            "amount" : tran_amount,
+            "balance" : balance}
+          self.balance = balance
+      self.last_transaction_id = max(self.transactions.keys(), default=100000)
+      return "Welcome Back!"
